@@ -21,6 +21,9 @@ namespace Ingress.Controller
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting Request!");
+            _logger.LogInformation("Starting Request!");
+            _logger.LogInformation("Starting Request!");
+            _logger.LogInformation("Starting Request!");
 
             var list = await _kubernetesClient.ListNamespacedPodAsync("default", cancellationToken: cancellationToken);
             foreach (var item in list.Items)

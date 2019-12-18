@@ -9,7 +9,7 @@
         "type": "coreclr",
         "request": "launch",
         "preLaunchTask": "build",
-        "program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Ingress.Controler.dll",
+        "program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Ingress.Controller.dll",
         "args": [],
         "cwd": "${workspaceFolder}",
         "console": "internalConsole",

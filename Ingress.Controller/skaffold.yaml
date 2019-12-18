@@ -1,0 +1,14 @@
+apiVersion: skaffold/v1
+kind: Config
+metadata:
+  name: ingress.controller
+build:
+  artifacts:
+    - image: ingresscontroller
+  tagPolicy:
+    sha256: {}
+deploy:
+  kubectl:
+    manifests:
+      - deployment.yml
+      - service.yml

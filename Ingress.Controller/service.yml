@@ -4,7 +4,7 @@ metadata:
   name: ingress-controller-service
 spec:
   selector:
-    app: ingress-controller-service
+    app: ingress-controller-pod
   ports:
   - port: 80
     targetPort: 80
