@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-controller
+spec:
+  selector:
+    matchLabels:
+      app: ingress-controller
+  template:
+    metadata:
+      labels:
+        app: ingress-controller
+    spec:
+      containers:
+      - name: ingress-controller
+        image: <Image>
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 80
