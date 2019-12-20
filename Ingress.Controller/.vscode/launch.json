@@ -29,6 +29,18 @@
         "netCore": {
             "appProject": "${workspaceFolder}/Ingress.Controller.csproj"
         }
-    }
+    },
+    {
+        "type": "cloudcode",
+        "request": "attach",
+        "name": "Debug on Kubernetes (backend)",
+        "language": "NETCore",
+        "debugPort": 9229,
+        "localRoot": "${workspaceFolder}",
+        "remoteRoot": "/src",
+        "podSelector": {
+          "app": "ingress-controller-pod"
+        }
+      }
 ]
 }

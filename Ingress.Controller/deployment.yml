@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: ingress-controller-container
-        image: ingresscontroller:v2
+        image: ingresscontroller
         imagePullPolicy: Never
         resources:
           limits:

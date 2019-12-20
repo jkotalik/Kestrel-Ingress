@@ -21,10 +21,6 @@ namespace Ingress.Controller
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting Request!");
-            _logger.LogInformation("Starting Request!");
-            _logger.LogInformation("Starting Request!");
-            _logger.LogInformation("Starting Request!");
-
             var list = await _kubernetesClient.ListNamespacedPodAsync("default", cancellationToken: cancellationToken);
             foreach (var item in list.Items)
             {
@@ -34,6 +30,8 @@ namespace Ingress.Controller
             {
                 _logger.LogInformation("Empty!");
             }
+            // From what I can tell, I need to listen for things that happen for the ingress resource, update a config file
+            // that kestrel is using, optionally create the resource as well, and go from there?
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

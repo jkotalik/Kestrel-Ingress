@@ -1,0 +1,28 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kestrel-ingress-controller
+  namespace: ingress-kestrel
+  labels:
+    app.kubernetes.io/name: ingress-kestrel
+    app.kubernetes.io/part-of: ingress-kestrel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-kestrel
+      app.kubernetes.io/part-of: ingress-kestrel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ingress-kestrel
+        app.kubernetes.io/part-of: ingress-kestrel
+    spec:
+      # wait up to five minutes for the drain of connections
+      terminationGracePeriodSeconds: 300
+      nodeSelector:
+        kubernetes.io/os: linux
+      containers:
+        - name: test
+          image: test
