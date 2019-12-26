@@ -85,26 +85,6 @@ namespace Ingress.Controller
                     }
                 });
 
-                endpoints.MapGet("/ingress", async context =>
-                {
-                    context.Response.ContentType = "application/json";
-                    var tcs = new TaskCompletionSource<object>();
-                    var config = KubernetesClientConfiguration.InClusterConfig();
-                    var klient = new Kubernetes(config);
-                    var result = klient.ListNamespacedIngressWithHttpMessagesAsync("default", watch: true);
-                    string name = "";
-                    using (result.Watch<Extensionsv1beta1Ingress, Extensionsv1beta1IngressList>((type, item) =>
-                    {
-                        _logger.LogInformation("Got an event for ingress!");
-                        _logger.LogInformation(item.Metadata.Name);
-                        name = item.Metadata.Name;
-                        tcs.SetResult(null);
-                    }))
-                    {
-                        await tcs.Task;
-                        await context.Response.WriteAsync(name);
-                    }
-                });
             });
         }
     }
