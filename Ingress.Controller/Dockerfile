@@ -18,4 +18,18 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+WORKDIR /src
+COPY ["../App/App.csproj", "./"]
+RUN dotnet restore "./App.csproj"
+COPY ../App /src/App
+WORKDIR "/src/App"
+RUN dotnet build "App.csproj" -c Release -o /app/App/build
+
+FROM build AS publishApp
+RUN dotnet publish "App.csproj" -c Release -o /app/App/publish
+
+FROM base AS finalApp
+WORKDIR /app/App
+COPY --from=publish /app/App/publish .
+
 ENTRYPOINT ["dotnet", "Ingress.Controller.dll"]

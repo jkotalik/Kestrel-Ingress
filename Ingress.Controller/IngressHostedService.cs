@@ -3,6 +3,7 @@ using k8s.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,10 +30,16 @@ namespace Ingress.Controller
             {
                 _logger.LogInformation("Got an event for ingress!");
                 _logger.LogInformation(item.Metadata.Name);
+                _logger.LogInformation(item.Kind);
                 _logger.LogInformation(type.ToString());
                 if (type == WatchEventType.Added)
                 {
                     // Do something to add here.
+                    // Start up kestrel, waiting for port and url to be outputted?
+                    // the thing is, don't I start an image instead of a process?
+                    var process = new Process();
+                    process.StartInfo = new ProcessStartInfo("/app/");
+                    process.Start();
                 }
                 else if (type == WatchEventType.Deleted)
                 {
