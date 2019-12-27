@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,7 +39,8 @@ namespace Ingress.Controller
                     // Start up kestrel, waiting for port and url to be outputted?
                     // the thing is, don't I start an image instead of a process?
                     var process = new Process();
-                    process.StartInfo = new ProcessStartInfo("/app/");
+                    _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
+                    process.StartInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
                     process.Start();
                 }
                 else if (type == WatchEventType.Deleted)
