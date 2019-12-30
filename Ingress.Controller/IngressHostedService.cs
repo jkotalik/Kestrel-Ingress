@@ -38,8 +38,8 @@ namespace Ingress.Controller
                 {
                     // Create a process to run the ingress, get port from stdout?
                     _process = new Process();
-                    _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
-                    var startInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
+                    _logger.LogInformation(File.Exists("/app/Ingress/Ingress.dll").ToString());
+                    var startInfo = new ProcessStartInfo("dotnet", "/app/Ingress/Ingress.dll");
                     startInfo.CreateNoWindow = true;
                     _process.StartInfo = startInfo;
                     _process.Start();

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace App
+namespace Ingress
 {
     public class Startup
     {
@@ -30,10 +30,24 @@ namespace App
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
-                // endpoints .ProxyGet?
                 endpoints.MapGet("/", async context =>
                 {
-                    await context.Response.WriteAsync("Hello world");
+                    var client = new HttpClient();
+                    // TODO need to get name and port from configuration.
+                    var request = new HttpRequestMessage(HttpMethod.Get, "http://example.com");
+                    var response = await client.SendAsync(request);
+
+                    foreach (var header in response.Headers)
+                    {
+                        context.Response.Headers.Add(header.Key, header.Value.ToArray());
+                    }
+
+                    await response.Content.CopyToAsync(context.Response.Body);
+
+                    foreach (var header in response.TrailingHeaders)
+                    {
+                        context.Response.AppendTrailer(header.Key, header.Value.ToArray());
+                    }
                 });
             });
         }
