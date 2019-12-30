@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Ingress.Controller
@@ -28,7 +29,7 @@ namespace Ingress.Controller
             _logger.LogInformation("Started ingress hosted service");
             var klient = new Kubernetes(_config);
             var result = klient.ListNamespacedIngressWithHttpMessagesAsync("default", watch: true);
-            _watcher = result.Watch<Extensionsv1beta1Ingress, Extensionsv1beta1IngressList>((type, item) =>
+            _watcher = result.Watch((Action<WatchEventType, Extensionsv1beta1Ingress>)((type, item) =>
             {
                 _logger.LogInformation("Got an event for ingress!");
                 _logger.LogInformation(item.Metadata.Name);
@@ -37,27 +38,36 @@ namespace Ingress.Controller
                 if (type == WatchEventType.Added)
                 {
                     // Create a process to run the ingress, get port from stdout?
-                    _process = new Process();
-                    _logger.LogInformation(File.Exists("/app/Ingress/Ingress.dll").ToString());
-                    var startInfo = new ProcessStartInfo("dotnet", "/app/Ingress/Ingress.dll");
-                    startInfo.CreateNoWindow = true;
-                    _process.StartInfo = startInfo;
-                    _process.Start();
+                    CreateJsonBlob(item);
+                    StartProcess();
                 }
                 else if (type == WatchEventType.Deleted)
                 {
-                    // _process.Close();
+                    _process.Close();
                 }
                 else if (type == WatchEventType.Modified)
                 {
-
+                    // Generate a new configuration here and let the process handle it.
+                    _process.Close();
+                    StartProcess();
                 }
                 else
                 {
-
+                    // Error, close the process?
                 }
-            });
+            }));
             return Task.CompletedTask;
+        }
+
+        private void StartProcess()
+        {
+            _process = new Process();
+            _logger.LogInformation(File.Exists("/app/Ingress/Ingress.dll").ToString());
+            var startInfo = new ProcessStartInfo("dotnet", "/app/Ingress/Ingress.dll");
+            startInfo.WorkingDirectory = "/app/Ingress";
+            startInfo.CreateNoWindow = true;
+            _process.StartInfo = startInfo;
+            _process.Start();
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -65,6 +75,12 @@ namespace Ingress.Controller
             // Nothing to stop
             _watcher.Dispose();
             return Task.CompletedTask;
+        }
+
+        private void CreateJsonBlob(Extensionsv1beta1Ingress ingress)
+        {
+            var ingressConfig = JsonSerializer.Serialize(ingress, typeof(Extensionsv1beta1Ingress));
+            File.WriteAllText("/app/Ingress/ingress.json", ingressConfig);
         }
     }
 }
