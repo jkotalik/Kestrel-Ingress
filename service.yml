@@ -6,6 +6,6 @@ spec:
   selector:
     app: ingress-controller-pod
   ports:
-  - port: 8080
+  - port: 8082
     targetPort: 80
   type: LoadBalancer
