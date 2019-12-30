@@ -31,10 +31,10 @@ namespace Ingress.Controller
                 {
                     webBuilder.UseStartup<Startup>();
                     // Listen on localhost on a different port so we can still get info
-                    // webBuilder.ConfigureKestrel((options) =>
-                    // {
-                    //     options.ListenLocalhost(5555);
-                    // });
+                    webBuilder.ConfigureKestrel((options) =>
+                    {
+                        options.ListenAnyIP(8080);
+                    });
                 });
     }
 }

@@ -37,12 +37,12 @@ namespace Ingress.Controller
                 if (type == WatchEventType.Added)
                 {
                     // Create a process to run the ingress, get port from stdout?
-                    // _process = new Process();
-                    // _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
-                    // var startInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
-                    // startInfo.CreateNoWindow = true;
-                    // _process.StartInfo = startInfo;
-                    // _process.Start();
+                    _process = new Process();
+                    _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
+                    var startInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
+                    startInfo.CreateNoWindow = true;
+                    _process.StartInfo = startInfo;
+                    _process.Start();
                 }
                 else if (type == WatchEventType.Deleted)
                 {

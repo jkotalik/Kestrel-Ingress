@@ -33,7 +33,7 @@ namespace App
                 // endpoints .ProxyGet?
                 endpoints.MapGet("/", async context =>
                 {
-                    // Proxy here based on config.
+                    await context.Response.WriteAsync("Hello world");
                 });
             });
         }
