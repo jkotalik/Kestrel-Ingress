@@ -49,6 +49,7 @@ namespace Ingress.Controller
             {
                 endpoints.MapGet("/env", async context =>
                 {
+                    _logger.LogInformation("In env");
                     context.Response.ContentType = "application/json";
 
                     var configuration = context.RequestServices.GetRequiredService<IConfiguration>() as IConfigurationRoot;

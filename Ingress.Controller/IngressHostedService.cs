@@ -15,6 +15,7 @@ namespace Ingress.Controller
         private readonly KubernetesClientConfiguration _config;
         private readonly ILogger<IngressHostedService> _logger;
         private Watcher<Extensionsv1beta1Ingress> _watcher;
+        private Process _process;
 
         public IngressHostedService(KubernetesClientConfiguration config, ILogger<IngressHostedService> logger)
         {
@@ -35,17 +36,17 @@ namespace Ingress.Controller
                 _logger.LogInformation(type.ToString());
                 if (type == WatchEventType.Added)
                 {
-                    // Do something to add here.
-                    // Start up kestrel, waiting for port and url to be outputted?
-                    // the thing is, don't I start an image instead of a process?
-                    var process = new Process();
-                    _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
-                    process.StartInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
-                    process.Start();
+                    // Create a process to run the ingress, get port from stdout?
+                    // _process = new Process();
+                    // _logger.LogInformation(File.Exists("/app/App/App.dll").ToString());
+                    // var startInfo = new ProcessStartInfo("dotnet", "/app/App/App.dll");
+                    // startInfo.CreateNoWindow = true;
+                    // _process.StartInfo = startInfo;
+                    // _process.Start();
                 }
                 else if (type == WatchEventType.Deleted)
                 {
-
+                    // _process.Close();
                 }
                 else if (type == WatchEventType.Modified)
                 {
