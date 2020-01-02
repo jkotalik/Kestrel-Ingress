@@ -8,6 +8,7 @@ WORKDIR /src
 COPY ["Ingress.Controller/Ingress.Controller.csproj", "Ingress.Controller/"]
 COPY ["Ingress/Ingress.csproj", "Ingress/"]
 COPY ["Ingress.Library/Ingress.Library.csproj", "Ingress.Library/"]
+COPY ["nuget.config", "/"]
 RUN dotnet restore Ingress.Controller/Ingress.Controller.csproj
 RUN dotnet restore Ingress/Ingress.csproj
 

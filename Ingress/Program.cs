@@ -21,7 +21,7 @@ namespace Ingress
             Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddJsonFile("/app/Ingress/ingress.json", optional: false, reloadOnChange: true);
+                    config.AddJsonFile("ingress.json", optional: false, reloadOnChange: true);
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {

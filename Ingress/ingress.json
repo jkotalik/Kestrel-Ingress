@@ -1,0 +1,9 @@
+{
+    "IpMappings": [
+        {
+            "IpAddress": "127.0.0.1",
+            "Port": 8081,
+            "Path": "/"
+        }
+    ]
+}
