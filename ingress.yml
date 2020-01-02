@@ -11,5 +11,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: http-svc
-          servicePort: 80
+          serviceName: hello-aspnetcore-service
+          servicePort: 8081

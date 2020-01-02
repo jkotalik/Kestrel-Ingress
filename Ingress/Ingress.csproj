@@ -4,4 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ingress.Library\Ingress.Library.csproj" />
+  </ItemGroup>
 </Project>

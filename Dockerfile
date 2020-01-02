@@ -7,6 +7,7 @@ FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
 WORKDIR /src
 COPY ["Ingress.Controller/Ingress.Controller.csproj", "Ingress.Controller/"]
 COPY ["Ingress/Ingress.csproj", "Ingress/"]
+COPY ["Ingress.Library/Ingress.Library.csproj", "Ingress.Library/"]
 RUN dotnet restore Ingress.Controller/Ingress.Controller.csproj
 RUN dotnet restore Ingress/Ingress.csproj
 

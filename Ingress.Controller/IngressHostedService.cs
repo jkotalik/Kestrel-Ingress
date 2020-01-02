@@ -8,6 +8,9 @@ using System.IO;
 using System.Threading;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using Ingress.Library;
 
 namespace Ingress.Controller
 {
@@ -17,6 +20,7 @@ namespace Ingress.Controller
         private readonly ILogger<IngressHostedService> _logger;
         private Watcher<Extensionsv1beta1Ingress> _watcher;
         private Process _process;
+        private Kubernetes _klient;
 
         public IngressHostedService(KubernetesClientConfiguration config, ILogger<IngressHostedService> logger)
         {
@@ -27,9 +31,9 @@ namespace Ingress.Controller
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Started ingress hosted service");
-            var klient = new Kubernetes(_config);
-            var result = klient.ListNamespacedIngressWithHttpMessagesAsync("default", watch: true);
-            _watcher = result.Watch((Action<WatchEventType, Extensionsv1beta1Ingress>)((type, item) =>
+            _klient = new Kubernetes(_config);
+            var result = _klient.ListNamespacedIngressWithHttpMessagesAsync("default", watch: true);
+            _watcher = result.Watch((Action<WatchEventType, Extensionsv1beta1Ingress>)(async (type, item) =>
             {
                 _logger.LogInformation("Got an event for ingress!");
                 _logger.LogInformation(item.Metadata.Name);
@@ -38,7 +42,7 @@ namespace Ingress.Controller
                 if (type == WatchEventType.Added)
                 {
                     // Create a process to run the ingress, get port from stdout?
-                    CreateJsonBlob(item);
+                    await CreateJsonBlob(item);
                     StartProcess();
                 }
                 else if (type == WatchEventType.Deleted)
@@ -77,10 +81,34 @@ namespace Ingress.Controller
             return Task.CompletedTask;
         }
 
-        private void CreateJsonBlob(Extensionsv1beta1Ingress ingress)
+        private async ValueTask CreateJsonBlob(Extensionsv1beta1Ingress ingress)
         {
-            var ingressConfig = JsonSerializer.Serialize(ingress, typeof(Extensionsv1beta1Ingress));
-            File.WriteAllText("/app/Ingress/ingress.json", ingressConfig);
+            // Get IP and port from k8s.
+            var fileStream = File.Open("/app/Ingress/ingress.json", FileMode.CreateNew);
+            var ipMappingList = new List<IpMapping>();
+            if (ingress.Spec.Backend != null)
+            {
+                // TODO do same logic 
+            }
+            else
+            {
+                // TODO maybe check that a host is present:
+                // An optional host. In this example, no host is specified, so the rule applies to all 
+                // inbound HTTP traffic through the IP address specified. If a host is provided 
+                // (for example, foo.bar.com), the rules apply to that host.
+                foreach (var i in ingress.Spec.Rules)
+                {
+                    foreach (var path in i.Http.Paths)
+                    {
+                        var service = await _klient.ReadNamespacedServiceAsync(name: path.Backend.ServiceName, namespaceParameter: ingress.Metadata.NamespaceProperty);
+                        ipMappingList.Add(new IpMapping { IpAddress = service.Spec.ClusterIP, Port = path.Backend.ServicePort, Path = path.Path });
+                    }
+                }
+            }
+            
+            var json = new IngressBindingOptions() {IpMappings = ipMappingList};
+            await JsonSerializer.SerializeAsync(fileStream, json, typeof(IngressBindingOptions));
+            fileStream.Close();
         }
     }
 }
