@@ -64,21 +64,27 @@ namespace Ingress.Controller
             var result2 = _klient.ListNamespacedEndpointsWithHttpMessagesAsync("default", watch: true);
             _endpointWatcher = result2.Watch((Action<WatchEventType, V1EndpointsList>)((type, item) =>
             {
-                var dict = new Dictionary<string, List<string>>();
                 if (type == WatchEventType.Added)
                 {
-                    foreach (var endpoint in item.Items)
-                    {
-                        dict[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) =>o.Addresses).Select(a => a.Ip).ToList();
-                    }
+                    UpdateServiceToEndpointDictionary(item);
                 }
                 // TODO do I need this lock?
-                lock(_sync)
-                {
-                    _serviceToIp = dict;
-                }
+
             }));
             return Task.CompletedTask;
+        }
+
+        private void UpdateServiceToEndpointDictionary(V1EndpointsList item)
+        {
+            var dict = new Dictionary<string, List<string>>();
+            foreach (var endpoint in item.Items)
+            {
+                dict[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
+            }
+            lock (_sync)
+            {
+                _serviceToIp = dict;
+            }
         }
 
         private void StartProcess()
@@ -123,7 +129,15 @@ namespace Ingress.Controller
                 {
                     foreach (var path in i.Http.Paths)
                     {
-                        if (_serviceToIp.TryGetValue(path.Backend.ServiceName, out var ipList))
+                        bool exists;
+                        List<string> ipList;
+
+                        lock (_sync)
+                        {
+                            exists = _serviceToIp.TryGetValue(path.Backend.ServiceName, out ipList);
+                        }
+
+                        if (exists)
                         {
                             ipMappingList.Add(new IpMapping { IpAddresses = ipList, Port = path.Backend.ServicePort, Path = path.Path });
                         }
@@ -132,7 +146,17 @@ namespace Ingress.Controller
                             // var service = await _klient.ReadNamespacedServiceAsync(name: path.Backend.ServiceName, namespaceParameter: ingress.Metadata.NamespaceProperty);
                             _logger.LogInformation("Getting endpoints");
                             // This needs to filter down for endpoints that match the service?
-                            var service = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
+                            var endpoints = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
+                            var service = await _klient.ReadNamespacedServiceAsync(path.Backend.ServiceName, ingress.Metadata.NamespaceProperty);
+                            
+                            // TODO can there be multiple ports here?
+                            var targetPort = service.Spec.Ports.Where(e => e.Port == path.Backend.ServicePort).Select(e => e.TargetPort).Single();
+                            // need to find the mapping from servicePort to targetPort.
+                            UpdateServiceToEndpointDictionary(endpoints);
+                            lock(_sync)
+                            {
+                                ipMappingList.Add(new IpMapping { IpAddresses = _serviceToIp[path.Backend.ServiceName], Port = targetPort, Path = path.Path });
+                            }
                         }
                     }
                 }
