@@ -10,9 +10,12 @@ using Ingress.Library;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Matching;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,6 +38,7 @@ namespace Ingress
             services.Configure<KestrelServerOptions>(
                 Configuration.GetSection("Kestrel"));
             services.Configure<IngressBindingOptions>(Configuration);
+            services.AddRouting();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,24 +46,11 @@ namespace Ingress
         {
             var logger = loggerFactory.CreateLogger("Ingress");
             app.UseRouting();
+            // app.UseProxyEndpoints(bindings);
             app.UseEndpoints(endpoints =>
             {
-                foreach (var mapping in bindings.Value.IpMappings)
-                {
-                    endpoints.Map(mapping.Path, async context =>
-                    {
-                        var client = new ClientBuilder(app.ApplicationServices).UseSockets().UseConnectionLogging().Build();
-                        var ipEndpoint = new IPEndPoint(IPAddress.Parse(mapping.IpAddresses.First()), mapping.Port);
-                        logger.LogInformation(ipEndpoint.ToString());
-                        await using var connection = await client.ConnectAsync(ipEndpoint);
-                        var httpProtocol = new HttpClientProtocol(connection);
-                        // bug: bedrock doesn't set the host header.
-                        var request = new HttpRequestMessage(HttpMethod.Get, context.Request.Path);
-                        request.Headers.Host = ipEndpoint.ToString();
-                        var response = await httpProtocol.SendAsync(request);
-                        await response.Content.CopyToAsync(context.Response.Body);
-                    });
-                }
+                // Add config based endpoints which will invalidate cache on 
+                endpoints.DataSources.Add(new ConfigEndpointDataSource(bindings.Value));
             });
         }
     }
