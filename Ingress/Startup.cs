@@ -46,36 +46,16 @@ namespace Ingress
             {
                 foreach (var mapping in bindings.Value.IpMappings)
                 {
-                    // endpoints.Map(mapping.Path, async context =>
-                    // {
-                    //     var client = new HttpClient();
-                    //     var uri = $"http://{mapping.IpAddress}:{mapping.Port}{context.Request.Path}";
-                    //     Console.WriteLine(uri);
-
-                    //     var request = new HttpRequestMessage(HttpMethod.Get, new Uri(uri));
-                    //     var response = await client.SendAsync(request);
-
-                    //     // TODO figure out allow and deny list for headers
-                    //     // foreach (var header in response.Headers)
-                    //     // {
-                    //     //     context.Response.Headers.Add(header.Key, header.Value.ToArray());
-                    //     // }
-                    //     await response.Content.CopyToAsync(context.Response.Body);
-                    //     // foreach (var header in response.TrailingHeaders)
-                    //     // {
-                    //     //     context.Response.AppendTrailer(header.Key, header.Value.ToArray());
-                    //     // }
-                    // });
-
                     endpoints.Map(mapping.Path, async context =>
                     {
                         var client = new ClientBuilder(app.ApplicationServices).UseSockets().UseConnectionLogging().Build();
-                        await using var connection = await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(mapping.IpAddress), mapping.Port));
+                        var ipEndpoint = new IPEndPoint(IPAddress.Parse(mapping.IpAddress), mapping.Port);
+                        await using var connection = await client.ConnectAsync(ipEndpoint);
                         var httpProtocol = new HttpClientProtocol(connection);
+                        // bug: bedrock doesn't set the host header.
                         var request = new HttpRequestMessage(HttpMethod.Get, context.Request.Path);
+                        request.Headers.Host = ipEndpoint.ToString();
                         var response = await httpProtocol.SendAsync(request);
-                        logger.LogInformation(response.IsSuccessStatusCode.ToString());
-                        logger.LogInformation(await response.Content.ReadAsStringAsync());
                         await response.Content.CopyToAsync(context.Response.Body);
                     });
                 }

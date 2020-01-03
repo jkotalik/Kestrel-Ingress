@@ -84,7 +84,12 @@ namespace Ingress.Controller
         private async ValueTask CreateJsonBlob(Extensionsv1beta1Ingress ingress)
         {
             // Get IP and port from k8s.
-            var fileStream = File.Open("/app/Ingress/ingress.json", FileMode.CreateNew);
+            var ingressFile = "/app/Ingress/ingress.json";
+            if (File.Exists(ingressFile))
+            {
+                File.Delete(ingressFile);
+            }
+            var fileStream = File.Open(ingressFile, FileMode.CreateNew);
             var ipMappingList = new List<IpMapping>();
             if (ingress.Spec.Backend != null)
             {
