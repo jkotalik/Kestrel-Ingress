@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Ingress.Library;
+using System.Net;
 
 namespace Ingress.Controller
 {
@@ -19,9 +20,12 @@ namespace Ingress.Controller
         private readonly KubernetesClientConfiguration _config;
         private readonly ILogger<IngressHostedService> _logger;
         private Watcher<Extensionsv1beta1Ingress> _watcher;
+        private Watcher<V1EndpointsList> _endpointWatcher;
         private Process _process;
         private Kubernetes _klient;
+        private object _sync = new object();
 
+        Dictionary<string, List<string>> _serviceToIp = new Dictionary<string, List<string>>();
         public IngressHostedService(KubernetesClientConfiguration config, ILogger<IngressHostedService> logger)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -35,13 +39,9 @@ namespace Ingress.Controller
             var result = _klient.ListNamespacedIngressWithHttpMessagesAsync("default", watch: true);
             _watcher = result.Watch((Action<WatchEventType, Extensionsv1beta1Ingress>)(async (type, item) =>
             {
-                _logger.LogInformation("Got an event for ingress!");
-                _logger.LogInformation(item.Metadata.Name);
-                _logger.LogInformation(item.Kind);
-                _logger.LogInformation(type.ToString());
+                // TODO move logic out of watch callback.
                 if (type == WatchEventType.Added)
                 {
-                    // Create a process to run the ingress, get port from stdout?
                     await CreateJsonBlob(item);
                     StartProcess();
                 }
@@ -58,6 +58,24 @@ namespace Ingress.Controller
                 else
                 {
                     // Error, close the process?
+                }
+            }));
+
+            var result2 = _klient.ListNamespacedEndpointsWithHttpMessagesAsync("default", watch: true);
+            _endpointWatcher = result2.Watch((Action<WatchEventType, V1EndpointsList>)((type, item) =>
+            {
+                var dict = new Dictionary<string, List<string>>();
+                if (type == WatchEventType.Added)
+                {
+                    foreach (var endpoint in item.Items)
+                    {
+                        dict[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) =>o.Addresses).Select(a => a.Ip).ToList();
+                    }
+                }
+                // TODO do I need this lock?
+                lock(_sync)
+                {
+                    _serviceToIp = dict;
                 }
             }));
             return Task.CompletedTask;
@@ -105,8 +123,17 @@ namespace Ingress.Controller
                 {
                     foreach (var path in i.Http.Paths)
                     {
-                        var service = await _klient.ReadNamespacedServiceAsync(name: path.Backend.ServiceName, namespaceParameter: ingress.Metadata.NamespaceProperty);
-                        ipMappingList.Add(new IpMapping { IpAddress = service.Spec.ClusterIP, Port = path.Backend.ServicePort, Path = path.Path });
+                        if (_serviceToIp.TryGetValue(path.Backend.ServiceName, out var ipList))
+                        {
+                            ipMappingList.Add(new IpMapping { IpAddresses = ipList, Port = path.Backend.ServicePort, Path = path.Path });
+                        }
+                        else
+                        {
+                            // var service = await _klient.ReadNamespacedServiceAsync(name: path.Backend.ServiceName, namespaceParameter: ingress.Metadata.NamespaceProperty);
+                            _logger.LogInformation("Getting endpoints");
+                            // This needs to filter down for endpoints that match the service?
+                            var service = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
+                        }
                     }
                 }
             }

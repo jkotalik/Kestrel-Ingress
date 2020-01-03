@@ -10,7 +10,7 @@ namespace Ingress.Library
 
     public class IpMapping
     {
-        public string IpAddress { get; set; }
+        public List<string> IpAddresses { get; set; }
         public int Port {get; set; }
         public string Path { get; set; }
     }

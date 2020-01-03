@@ -49,7 +49,7 @@ namespace Ingress
                     endpoints.Map(mapping.Path, async context =>
                     {
                         var client = new ClientBuilder(app.ApplicationServices).UseSockets().UseConnectionLogging().Build();
-                        var ipEndpoint = new IPEndPoint(IPAddress.Parse(mapping.IpAddress), mapping.Port);
+                        var ipEndpoint = new IPEndPoint(IPAddress.Parse(mapping.IpAddresses.First()), mapping.Port);
                         await using var connection = await client.ConnectAsync(ipEndpoint);
                         var httpProtocol = new HttpClientProtocol(connection);
                         // bug: bedrock doesn't set the host header.
