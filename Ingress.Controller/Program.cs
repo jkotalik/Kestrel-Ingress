@@ -26,15 +26,6 @@ namespace Ingress.Controller
                     // the time this sample was created.
                     // Add the class that uses the client
                     services.AddHostedService<IngressHostedService>();
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    // Listen on localhost on a different port so we can still get info
-                    webBuilder.ConfigureKestrel((options) =>
-                    {
-                        options.ListenAnyIP(8080);
-                    });
                 });
     }
 }

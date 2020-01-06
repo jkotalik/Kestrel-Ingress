@@ -9,7 +9,4 @@ spec:
   - port: 8082
     name: ingress
     targetPort: 80
-  - port: 8083
-    name: controller
-    targetPort: 8080
   type: LoadBalancer
