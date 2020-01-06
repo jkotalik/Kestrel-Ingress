@@ -42,15 +42,14 @@ namespace Ingress
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, IOptions<IngressBindingOptions> bindings)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, IOptionsMonitor<IngressBindingOptions> bindings)
         {
-            var logger = loggerFactory.CreateLogger("Ingress");
             app.UseRouting();
             // app.UseProxyEndpoints(bindings);
             app.UseEndpoints(endpoints =>
             {
                 // Add config based endpoints which will invalidate cache on 
-                endpoints.DataSources.Add(new ConfigEndpointDataSource(bindings.Value));
+                endpoints.DataSources.Add(new ConfigEndpointDataSource(bindings));
             });
         }
     }

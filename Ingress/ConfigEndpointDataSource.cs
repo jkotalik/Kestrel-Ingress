@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Bedrock.Framework;
 using Bedrock.Framework.Protocols;
@@ -9,24 +11,88 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace Ingress
 {
     public class ConfigEndpointDataSource : EndpointDataSource
     {
-        private IngressBindingOptions _options;
-        private List<Endpoint> _endpoints = new List<Endpoint>();
-        public ConfigEndpointDataSource(IngressBindingOptions options)
+        private readonly object _lock;
+        private IOptionsMonitor<IngressBindingOptions> _options;
+        private List<Endpoint> _endpoints;
+        private IChangeToken _changeToken;
+        private CancellationTokenSource _cancellationTokenSource;
+
+        public ConfigEndpointDataSource(IOptionsMonitor<IngressBindingOptions> options)
         {
-            System.Console.WriteLine("In Constructor");
             _options = options;
-            Temp();
+            _lock = new object();
+
+            options.OnChange((s) =>
+            {
+                UpdateEndpoints();
+            });
         }
 
-        private void Temp()
+        public override IChangeToken GetChangeToken()
         {
-            foreach (var mapping in _options.IpMappings)
+            Initialize();
+            Debug.Assert(_changeToken != null);
+            Debug.Assert(_endpoints != null);
+            return _changeToken;
+        }
+
+        /// <summary>
+        /// Returns a read-only collection of <see cref="Endpoint"/> instances.
+        /// </summary>
+        public override IReadOnlyList<Endpoint> Endpoints
+        {
+            get
+            {
+                Initialize();
+                return _endpoints;
+            }
+        }
+
+        // Defer initialization to avoid doing lots of reflection on startup.
+        // Note: we can't use DataSourceDependentCache here because we also need to handle a list of change
+        // tokens, which is a complication most of our code doesn't have.
+        private void Initialize()
+        {
+            lock (_lock)
+            {
+                if (_endpoints == null)
+                {
+                   UpdateEndpoints();
+                }
+            }
+        }
+
+        private void UpdateEndpoints()
+        {
+            lock (_lock)
+            {
+                var endpoints = CreateEndpoints();
+
+                var oldCancellationTokenSource = _cancellationTokenSource;
+
+                // Step 2 - update endpoints
+                _endpoints = endpoints;
+
+                // Step 3 - create new change token
+                _cancellationTokenSource = new CancellationTokenSource();
+                _changeToken = new CancellationChangeToken(_cancellationTokenSource.Token);
+
+                // Step 4 - trigger old token
+                oldCancellationTokenSource?.Cancel();
+            }
+        }
+
+        private List<Endpoint> CreateEndpoints()
+        {
+            var endpoints = new List<Endpoint>();
+            foreach (var mapping in _options.CurrentValue.IpMappings)
             {
                 var ipEndpoints = new List<IPEndPoint>();
 
@@ -38,12 +104,12 @@ namespace Ingress
                 var loadBalanceSelector = new LoadBalananceSelector(ipEndpoints);
                 var routePattern = RoutePatternFactory.Parse(mapping.Path);
 
-                _endpoints.Add(new RouteEndpoint(async c =>
+                endpoints.Add(new RouteEndpoint(async c =>
                 {
                     var client = new ClientBuilder(c.RequestServices).UseSockets().UseConnectionLogging().Build();
                     var ipEndpoint = await loadBalanceSelector.SelectAsync();
                     await using var connection = await client.ConnectAsync(ipEndpoint);
-                        var httpProtocol = new HttpClientProtocol(connection);
+                    var httpProtocol = new HttpClientProtocol(connection);
                     // bug: bedrock doesn't set the host header.
                     var request = new HttpRequestMessage(HttpMethod.Get, c.Request.Path);
                     request.Headers.Host = ipEndpoint.ToString();
@@ -55,11 +121,7 @@ namespace Ingress
                 EndpointMetadataCollection.Empty,
                 mapping.Path));
             }
+            return endpoints;
         }
-
-        public override IReadOnlyList<Endpoint> Endpoints => _endpoints;
-
-        public override IChangeToken GetChangeToken() => NullChangeToken.Singleton;
     }
-
 }
