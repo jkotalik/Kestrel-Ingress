@@ -155,7 +155,7 @@ namespace Ingress.Controller
                             UpdateServiceToEndpointDictionary(endpoints);
                             lock(_sync)
                             {
-                                ipMappingList.Add(new IpMapping { IpAddresses = _serviceToIp[path.Backend.ServiceName], Port = targetPort, Path = path.Path });
+                                ipMappingList.Add(new IpMapping { IpAddresses = _serviceToIp[path.Backend.ServiceName], Port = targetPort, Path = path.Path, Scheme = "http" });
                             }
                         }
                     }

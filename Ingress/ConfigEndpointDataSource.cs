@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -8,6 +9,7 @@ using Bedrock.Framework;
 using Bedrock.Framework.Protocols;
 using Ingress.Library;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.FileProviders;
@@ -94,6 +96,7 @@ namespace Ingress
             var endpoints = new List<Endpoint>();
             foreach (var mapping in _options.CurrentValue.IpMappings)
             {
+                // TODO IpAddresses needs to support dns names
                 var ipEndpoints = new List<IPEndPoint>();
 
                 foreach (var ip in mapping.IpAddresses)
@@ -106,15 +109,15 @@ namespace Ingress
 
                 endpoints.Add(new RouteEndpoint(async c =>
                 {
-                    var client = new ClientBuilder(c.RequestServices).UseSockets().UseConnectionLogging().Build();
                     var ipEndpoint = await loadBalanceSelector.SelectAsync();
-                    await using var connection = await client.ConnectAsync(ipEndpoint);
-                    var httpProtocol = new HttpClientProtocol(connection);
-                    // bug: bedrock doesn't set the host header.
-                    var request = new HttpRequestMessage(HttpMethod.Get, c.Request.Path);
-                    request.Headers.Host = ipEndpoint.ToString();
-                    var response = await httpProtocol.SendAsync(request);
-                    await response.Content.CopyToAsync(c.Response.Body);
+
+                    var uriBuilder = new UriBuilder();
+                    uriBuilder.Host = ipEndpoint.Address.ToString();
+                    uriBuilder.Scheme = mapping.Scheme;
+                    uriBuilder.Path = mapping.Path;
+                    uriBuilder.Port = ipEndpoint.Port;
+
+                    await c.ProxyRequest(uriBuilder.Uri);
                 },
                 routePattern,
                 order: 0,

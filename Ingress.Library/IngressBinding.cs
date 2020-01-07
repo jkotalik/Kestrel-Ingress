@@ -13,5 +13,6 @@ namespace Ingress.Library
         public List<string> IpAddresses { get; set; }
         public int Port {get; set; }
         public string Path { get; set; }
+        public string Scheme { get; set; }
     }
 }
