@@ -37,8 +37,10 @@ namespace Ingress
         {
             services.Configure<KestrelServerOptions>(
                 Configuration.GetSection("Kestrel"));
+            // TODO services.AddIngress
             services.Configure<IngressBindingOptions>(Configuration);
             services.AddRouting();
+            services.AddSingleton<IngressService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

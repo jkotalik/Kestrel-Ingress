@@ -8,8 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ingress.Library\Ingress.Library.csproj" />
-    <!-- <PackageReference Include="Bedrock.Framework" Version="0.1.29-alpha.g5ac74bf416" /> -->
-    <!-- <PackageReference Include="Bedrock.Framework.Experimental" Version="0.1.29-alpha.g5ac74bf416" /> -->
     <ProjectReference Include="..\..\BedrockFramework\src\Bedrock.Framework\Bedrock.Framework.csproj" />
     <ProjectReference Include="..\..\BedrockFramework\src\Bedrock.Framework.Experimental\Bedrock.Framework.Experimental.csproj" />
   </ItemGroup>
