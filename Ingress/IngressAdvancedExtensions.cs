@@ -86,46 +86,46 @@ namespace Ingress
             {
                 throw new InvalidOperationException();
             }
-            await Task.CompletedTask;
-            return true;
-            // using (var client = new ClientWebSocket())
-            // {
-            //     foreach (var protocol in context.WebSockets.WebSocketRequestedProtocols)
-            //     {
-            //         client.Options.AddSubProtocol(protocol);
-            //     }
+            using (var client = new ClientWebSocket())
+            {
+                foreach (var protocol in context.WebSockets.WebSocketRequestedProtocols)
+                {
+                    client.Options.AddSubProtocol(protocol);
+                }
                 
-            //     foreach (var headerEntry in context.Request.Headers)
-            //     {
-            //         if (!NotForwardedWebSocketHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))
-            //         {
-            //             client.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
-            //         }
-            //     }
+                foreach (var headerEntry in context.Request.Headers)
+                {
+                    if (!NotForwardedWebSocketHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))
+                    {
+                        client.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
+                    }
+                }
 
-            //     if (proxyService.Options.WebSocketKeepAliveInterval.HasValue)
-            //     {
-            //         client.Options.KeepAliveInterval = proxyService.Options.WebSocketKeepAliveInterval.Value;
-            //     }
+                var ingressService = context.RequestServices.GetRequiredService<IngressService>();
 
-            //     try
-            //     {
-            //         await client.ConnectAsync(destinationUri, context.RequestAborted);
-            //     }
-            //     catch (WebSocketException)
-            //     {
-            //         context.Response.StatusCode = 400;
-            //         return false;
-            //     }
+                if (ingressService.Options.WebSocketKeepAliveInterval.HasValue)
+                {
+                    client.Options.KeepAliveInterval = ingressService.Options.WebSocketKeepAliveInterval.Value;
+                }
 
-            //     using (var server = await context.WebSockets.AcceptWebSocketAsync(client.SubProtocol))
-            //     {
-            //         var bufferSize = proxyService.Options.WebSocketBufferSize ?? DefaultWebSocketBufferSize;
-            //         await Task.WhenAll(PumpWebSocket(client, server, bufferSize, context.RequestAborted), PumpWebSocket(server, client, bufferSize, context.RequestAborted));
-            //     }
+                try
+                {
+                    await client.ConnectAsync(destinationUri, context.RequestAborted);
+                }
+                catch (WebSocketException)
+                {
+                    context.Response.StatusCode = 400;
+                    return false;
+                }
 
-            //     return true;
-            // }
+                using (var server = await context.WebSockets.AcceptWebSocketAsync(client.SubProtocol))
+                {
+                    var bufferSize = ingressService.Options.WebSocketBufferSize ?? DefaultWebSocketBufferSize;
+                    await Task.WhenAll(PumpWebSocket(client, server, bufferSize, context.RequestAborted), PumpWebSocket(server, client, bufferSize, context.RequestAborted));
+                }
+
+                return true;
+            }
         }
 
         private static async Task PumpWebSocket(WebSocket source, WebSocket destination, int bufferSize, CancellationToken cancellationToken)

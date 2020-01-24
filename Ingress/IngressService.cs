@@ -10,11 +10,13 @@ namespace Ingress
 {
     public class IngressService
     {
-        public IngressService(IServiceProvider serviceProvider)
+        public IngressService(IServiceProvider serviceProvider, IOptions<IngressOptions> options)
         {
             Client = new ClientBuilder(serviceProvider).UseSockets().UseConnectionPooling().Build();
+            Options = options.Value;
         }
 
+        public IngressOptions Options { get; set; }
         internal Client Client { get; private set; }
     }
 }
