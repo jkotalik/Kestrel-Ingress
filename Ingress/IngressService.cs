@@ -3,7 +3,6 @@
 
 using System;
 using System.Net.Http;
-using Bedrock.Framework;
 using Microsoft.Extensions.Options;
 
 namespace Ingress
@@ -12,11 +11,11 @@ namespace Ingress
     {
         public IngressService(IServiceProvider serviceProvider, IOptions<IngressOptions> options)
         {
-            Client = new ClientBuilder(serviceProvider).UseSockets().UseConnectionPooling().Build();
             Options = options.Value;
+            Client = new HttpClient(Options.MessageHandler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
         }
 
         public IngressOptions Options { get; set; }
-        internal Client Client { get; private set; }
+        internal HttpClient Client { get; private set; }
     }
 }

@@ -5,8 +5,6 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Bedrock.Framework;
-using Bedrock.Framework.Protocols;
 using Ingress;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,19 +39,8 @@ namespace Microsoft.AspNetCore.Http
                 using (var requestMessage = context.CreateProxyHttpRequest(destinationUri))
                 {
                     var ingressService = context.RequestServices.GetRequiredService<IngressService>();
-                    var host = $"{requestMessage.RequestUri.Host}:{requestMessage.RequestUri.Port}";
 
-                    // TODO if there is already an IP endpoint, reuse rather than reconstuction from a URI
-                    // TODO customize this.
-                    var endpoint = new HttpEndPoint(HttpConnectionKind.Http, requestMessage.RequestUri.Host, requestMessage.RequestUri.Port, "", destinationUri, maxConnections: 1);
-                    await using var connection = await ingressService.Client.ConnectAsync(endpoint);
-                    // TODO newing up the HttpClientProtocol news up a reader, which has state outside of the pipe
-                    // This causes a protocol reusing a pipe to throw as the reader is in an invalid state
-                    var httpProtocol = new HttpClientProtocol(connection);
-
-                    // bug: bedrock doesn't set the host header.
-                    requestMessage.Headers.Host = host;
-                    var responseMessage = await httpProtocol.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+                    var responseMessage = await ingressService.Client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
 
                     await context.CopyProxyHttpResponse(responseMessage);
                 }
