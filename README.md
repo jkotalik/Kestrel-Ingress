@@ -2,8 +2,8 @@
 
 An Ingress Controller and Ingress written using ASP.NET Core and Kestrel.
 
-
-
 # Getting started
 
-You will need:
+The Kestrel-Ingress uses Skaffold to run a backend, an ingress controller, and the ingress itself.
+
+To get started, try running `skaffold run`.
