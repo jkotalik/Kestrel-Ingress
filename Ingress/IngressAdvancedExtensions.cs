@@ -155,11 +155,6 @@ namespace Ingress
             }
         }
 
-        // public static async Task<HttpResponseMessage> SendProxyHttpRequest(this HttpContext context, HttpRequestMessage requestMessage)
-        // {
-
-        // }
-
         public static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
         {
             if (responseMessage == null)

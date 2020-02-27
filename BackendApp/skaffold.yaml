@@ -1,12 +1,10 @@
 apiVersion: skaffold/v1
 kind: Config
 metadata:
-  name: ingress.controller
+  name: kubetest
 build:
   artifacts:
-    - image: justincr.azurecr.io/ingresscontroller
     - image: justincr.azurecr.io/hello-aspnetcore
-      context: BackendApp/
   tagPolicy:
     sha256: {}
 deploy:
@@ -14,5 +12,3 @@ deploy:
     manifests:
       - deployment.yml
       - service.yml
-      - BackendApp/backend-deployment.yml
-      - BackendApp/backend-service.yml

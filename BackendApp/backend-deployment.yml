@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ingress-controller-deployment
+  name: hello-aspnetcore-deployment
 spec:
   selector:
     matchLabels:
-      app: ingress-controller-pod
+      app: hello-aspnetcore-pod
   template:
     metadata:
       labels:
-        app: ingress-controller-pod
+        app: hello-aspnetcore-pod
     spec:
       containers:
-      - name: ingress-controller-container
-        image: justincr.azurecr.io/ingresscontroller
+      - name: hello-aspnetcore-container
+        image: justincr.azurecr.io/hello-aspnetcore
         resources:
           limits:
             memory: "128Mi"
-            cpu: "100m"
+            cpu: "1m"
         ports:
         - containerPort: 80

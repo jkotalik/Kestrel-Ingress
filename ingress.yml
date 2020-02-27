@@ -1,13 +1,12 @@
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: default
+  name: ingress
   annotations:
     kubernetes.io/ingress.class: "kestrel"
 spec:
   rules:
-  - host: localhost
-    http:
+  - http:
       paths:
       - path: /
         backend:
