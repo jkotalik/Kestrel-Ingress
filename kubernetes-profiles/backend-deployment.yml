@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: hello-aspnetcore-deployment
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: hello-aspnetcore-pod

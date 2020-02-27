@@ -5,14 +5,16 @@ metadata:
 build:
   artifacts:
     - image: justincr.azurecr.io/ingresscontroller
+      context: src/
     - image: justincr.azurecr.io/hello-aspnetcore
-      context: BackendApp/
+      context: samples/BackendApp/
   tagPolicy:
     sha256: {}
 deploy:
   kubectl:
     manifests:
-      - deployment.yml
-      - service.yml
-      - BackendApp/backend-deployment.yml
-      - BackendApp/backend-service.yml
+      - kubernetes-profiles/ingress-controller-deployment.yml
+      - kubernetes-profiles/ingress-controller-service.yml
+      - kubernetes-profiles/backend-deployment.yml
+      - kubernetes-profiles/backend-service.yml
+      - kubernetes-profiles/ingress.yml
