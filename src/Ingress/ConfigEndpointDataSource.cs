@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
@@ -20,13 +21,15 @@ namespace Ingress
     {
         private readonly object _lock;
         private IOptionsMonitor<IngressBindingOptions> _options;
+        private readonly ILogger _logger;
         private List<Endpoint> _endpoints;
         private IChangeToken _changeToken;
         private CancellationTokenSource _cancellationTokenSource;
 
-        public ConfigEndpointDataSource(IOptionsMonitor<IngressBindingOptions> options)
+        public ConfigEndpointDataSource(IOptionsMonitor<IngressBindingOptions> options, ILogger logger)
         {
             _options = options;
+            _logger = logger;
             _lock = new object();
 
             options.OnChange((s) =>
@@ -73,11 +76,12 @@ namespace Ingress
         {
             lock (_lock)
             {
+                _logger.LogInformation("Updating endpoints");
                 var endpoints = CreateEndpoints();
 
                 var oldCancellationTokenSource = _cancellationTokenSource;
 
-                // Step 2 - update endpoints
+                // Step 2 - update endpoints 
                 _endpoints = endpoints;
 
                 // Step 3 - create new change token
@@ -96,14 +100,17 @@ namespace Ingress
             {
                 // TODO IpAddresses needs to support dns names
                 var ipEndpoints = new List<IPEndPoint>();
+                _logger.LogInformation("Available IPs");
 
                 foreach (var ip in mapping.IpAddresses)
                 {
                     ipEndpoints.Add(new IPEndPoint(IPAddress.Parse(ip), mapping.Port));
+                    _logger.LogInformation(ip.ToString());
                 }
 
                 var loadBalanceSelector = new LoadBalananceSelector(ipEndpoints);
-                var routePattern = RoutePatternFactory.Parse(mapping.Path);
+                string pattern = $"{mapping.Path}{{**x}}";
+                var routePattern = RoutePatternFactory.Parse(pattern);
 
                 endpoints.Add(new RouteEndpoint(async c =>
                 {
@@ -112,7 +119,7 @@ namespace Ingress
                     var uriBuilder = new UriBuilder();
                     uriBuilder.Host = ipEndpoint.Address.ToString();
                     uriBuilder.Scheme = mapping.Scheme;
-                    uriBuilder.Path = mapping.Path;
+                    uriBuilder.Path = c.Request.Path;
                     uriBuilder.Port = ipEndpoint.Port;
 
                     await c.ProxyRequest(uriBuilder.Uri);

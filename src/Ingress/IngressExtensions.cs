@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Ingress;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.Http
@@ -39,8 +40,9 @@ namespace Microsoft.AspNetCore.Http
                 using (var requestMessage = context.CreateProxyHttpRequest(destinationUri))
                 {
                     var ingressService = context.RequestServices.GetRequiredService<IngressService>();
-
+                    ingressService.Logger.LogInformation($"Routing request to {requestMessage.RequestUri.ToString()}");
                     var responseMessage = await ingressService.Client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+                    ingressService.Logger.LogInformation($"Request finished");
 
                     await context.CopyProxyHttpResponse(responseMessage);
                 }

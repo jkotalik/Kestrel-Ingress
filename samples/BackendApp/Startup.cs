@@ -1,10 +1,16 @@
+using System;
+using System.Collections;
+using System.Linq;
+using System.Text.Json;
+using k8s;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace kubetest
+namespace BackendApp
 {
     public class Startup
     {
@@ -28,7 +34,41 @@ namespace kubetest
             {
                 endpoints.MapGet("/", async context =>
                 {
-                    await context.Response.WriteAsync("Hello World 3!");
+                    await context.Response.WriteAsync("Hello from backend!");
+                });
+                endpoints.MapGet("/env", async context =>
+                {
+                    context.Response.ContentType = "application/json";
+                    var configuration = context.RequestServices.GetRequiredService<IConfiguration>() as IConfigurationRoot;
+                    var vars = Environment.GetEnvironmentVariables()
+                                        .Cast<DictionaryEntry>()
+                                        .OrderBy(e => (string)e.Key)
+                                        .ToDictionary(e => (string)e.Key, e => (string)e.Value);
+                    var data = new
+                    {
+                        version = Environment.Version.ToString(),
+                        env = vars,
+                        configuration = configuration.AsEnumerable().ToDictionary(c => c.Key, c => c.Value),
+                        configurtionDebug = configuration.GetDebugView(),
+                    };
+                    await JsonSerializer.SerializeAsync(context.Response.Body, data);
+                });
+
+                endpoints.MapGet("/replicas", async context =>
+                {
+                    context.Response.ContentType = "application/json";
+
+                    if (!KubernetesClientConfiguration.IsInCluster())
+                    {
+                        await JsonSerializer.SerializeAsync(context.Response.Body, new { message = "Not running in k8s" });
+                        return;
+                    }
+
+                    var config = KubernetesClientConfiguration.InClusterConfig();
+                    var klient = new Kubernetes(config);
+                    var endpointsList = await klient.ListNamespacedEndpointsAsync("default");
+
+                    await JsonSerializer.SerializeAsync(context.Response.Body, endpointsList.Items);
                 });
             });
         }

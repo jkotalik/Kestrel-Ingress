@@ -41,9 +41,6 @@ namespace Ingress.Controller
 
                 _watcher = result.Watch((Action<WatchEventType, Extensionsv1beta1Ingress>)(async (type, item) =>
                 {
-                    // TODO move logic out of watch callback.
-                    _logger.LogInformation("Event!");
-
                     if (type == WatchEventType.Added)
                     {
                         _logger.LogInformation("Added event");
@@ -67,20 +64,26 @@ namespace Ingress.Controller
                     }
                 }));
                 
-                _logger.LogInformation("Starting endpoint listening");
 
                 var result2 = _klient.ListNamespacedEndpointsWithHttpMessagesAsync("default", watch: true);
                 _endpointWatcher = result2.Watch((Action<WatchEventType, V1EndpointsList>)((type, item) =>
                 {
-                    _logger.LogInformation("Got endpoints");
+                    _logger.LogInformation($"Got endpoints {type.ToString()}");
 
                     if (type == WatchEventType.Added)
                     {
                         UpdateServiceToEndpointDictionary(item);
                     }
+                    else if (type == WatchEventType.Modified)
+                    {
+                        UpdateServiceToEndpointDictionary(item);
+                    }
+                    else if (type == WatchEventType.Deleted)
+                    {
+                        // remove from dictionary.
+                    }
                 }));
 
-                _logger.LogInformation("Done endpoint listening");
             }
             catch (Exception ex)
             {
@@ -91,14 +94,16 @@ namespace Ingress.Controller
 
         private void UpdateServiceToEndpointDictionary(V1EndpointsList item)
         {
-            var dict = new Dictionary<string, List<string>>();
-            foreach (var endpoint in item.Items)
-            {
-                dict[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
-            }
             lock (_sync)
             {
-                _serviceToIp = dict;
+                if (item != null && item.Items != null)
+                {
+                    foreach (var endpoint in item.Items)
+                    {
+                        _serviceToIp[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
+                        _logger.LogInformation($"{endpoint.Metadata.Name} {_serviceToIp[endpoint.Metadata.Name].ToString()}");
+                    }
+                }
             }
         }
 
@@ -147,15 +152,18 @@ namespace Ingress.Controller
                         lock (_sync)
                         {
                             exists = _serviceToIp.TryGetValue(path.Backend.ServiceName, out ipList);
+                            _logger.LogInformation(path.Backend.ServiceName);
                         }
 
                         if (exists)
                         {
+                            _logger.LogInformation("IP mapping exists, use it.");
+
                             ipMappingList.Add(new IpMapping { IpAddresses = ipList, Port = path.Backend.ServicePort, Path = path.Path });
                         }
                         else
                         {
-                            _logger.LogInformation("Getting endpoints");
+                            _logger.LogInformation("querying for endpoints");
                             var endpoints = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
                             var service = await _klient.ReadNamespacedServiceAsync(path.Backend.ServiceName, ingress.Metadata.NamespaceProperty);
                             

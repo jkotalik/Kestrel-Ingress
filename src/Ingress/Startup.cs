@@ -49,7 +49,7 @@ namespace Ingress
             app.UseEndpoints(endpoints =>
             {
                 // Add config based endpoints which will invalidate cache on 
-                endpoints.DataSources.Add(new ConfigEndpointDataSource(bindings));
+                endpoints.DataSources.Add(new ConfigEndpointDataSource(bindings, loggerFactory.CreateLogger("Config endpoint data source")));
             });
         }
     }

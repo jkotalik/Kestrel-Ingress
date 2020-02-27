@@ -4,18 +4,21 @@
 using System;
 using System.Net.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace Ingress
 {
     public class IngressService
     {
-        public IngressService(IServiceProvider serviceProvider, IOptions<IngressOptions> options)
+        public IngressService(ILoggerFactory factory, IServiceProvider serviceProvider, IOptions<IngressOptions> options)
         {
+            Logger = factory.CreateLogger("Ingress");
             Options = options.Value;
             Client = new HttpClient(Options.MessageHandler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
         }
 
         public IngressOptions Options { get; set; }
         internal HttpClient Client { get; private set; }
+        public ILogger Logger { get; }
     }
 }
