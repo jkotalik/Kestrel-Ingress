@@ -23,7 +23,10 @@ namespace BackendApp
                     webBuilder.UseStartup<Startup>()
                         .ConfigureKestrel((context, options) =>
                         {
-                            
+                            options.ListenAnyIP(80, listenOptions =>
+                            {
+                                listenOptions.UseConnectionLogging();
+                            });
                         });
                 });
     }
