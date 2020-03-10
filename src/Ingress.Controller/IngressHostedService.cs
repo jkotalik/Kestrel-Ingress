@@ -83,7 +83,6 @@ namespace Ingress.Controller
                         // remove from dictionary.
                     }
                 }));
-
             }
             catch (Exception ex)
             {
@@ -100,8 +99,11 @@ namespace Ingress.Controller
                 {
                     foreach (var endpoint in item.Items)
                     {
-                        _serviceToIp[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
-                        _logger.LogInformation($"{endpoint.Metadata.Name} {_serviceToIp[endpoint.Metadata.Name].ToString()}");
+                        if (endpoint != null && endpoint.Subsets != null)
+                        {
+                            _serviceToIp[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
+                            _logger.LogInformation($"{endpoint.Metadata.Name} {_serviceToIp[endpoint.Metadata.Name].ToString()}");
+                        }
                     }
                 }
             }
