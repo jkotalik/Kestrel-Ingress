@@ -34,6 +34,8 @@ namespace BackendApp
             {
                 endpoints.MapGet("/", async context =>
                 {
+                    await context.Response.WriteAsync(context.Request.Host.ToString());
+                    await context.Response.WriteAsync(Environment.NewLine);
                     await context.Response.WriteAsync("Hello from backend!!!");
                 });
                 endpoints.MapGet("/env", async context =>

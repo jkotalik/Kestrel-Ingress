@@ -122,6 +122,8 @@ namespace Ingress
                     uriBuilder.Path = c.Request.Path;
                     uriBuilder.Port = ipEndpoint.Port;
 
+                    _logger.LogInformation(ipEndpoint.Address.ToString());
+                    _logger.LogInformation(mapping.Scheme);
                     await c.ProxyRequest(uriBuilder.Uri);
                 },
                 routePattern,

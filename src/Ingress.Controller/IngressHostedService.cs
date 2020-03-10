@@ -193,39 +193,18 @@ namespace Ingress.Controller
             {
                 foreach (var path in i.Http.Paths)
                 {
-                    bool exists;
-                    List<string> ipList;
+                    _logger.LogInformation("Querying for endpoints");
+                    var endpoints = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
+                    var service = await _klient.ReadNamespacedServiceAsync(path.Backend.ServiceName, ingress.Metadata.NamespaceProperty);
+                    
+                    // TODO can there be multiple ports here?
+                    var targetPort = service.Spec.Ports.Where(e => e.Port == path.Backend.ServicePort).Select(e => e.TargetPort).Single();
 
-                    lock (_sync)
+                    UpdateServiceToEndpointDictionary(endpoints);
+                    lock(_sync)
                     {
-                        exists = _serviceToIp.TryGetValue(path.Backend.ServiceName, out ipList);
-                        _logger.LogInformation(path.Backend.ServiceName);
-                    }
-
-                    if (exists)
-                    {
-                        // TODO this is not hit today due to us only handling updates to endpoints
-                        // after ingress is handled.
-                        lock(_sync)
-                        {
-                            _ipMappingList[path.Backend.ServiceName] = new IpMapping { IpAddresses = ipList, Port = path.Backend.ServicePort, Path = path.Path };
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Querying for endpoints");
-                        var endpoints = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
-                        var service = await _klient.ReadNamespacedServiceAsync(path.Backend.ServiceName, ingress.Metadata.NamespaceProperty);
-                        
-                        // TODO can there be multiple ports here?
-                        var targetPort = service.Spec.Ports.Where(e => e.Port == path.Backend.ServicePort).Select(e => e.TargetPort).Single();
-
-                        UpdateServiceToEndpointDictionary(endpoints);
-                        lock(_sync)
-                        {
-                            // From what it looks like, scheme is always http unless the tls section is specified, 
-                            _ipMappingList[path.Backend.ServiceName] = new IpMapping { IpAddresses = _serviceToIp[path.Backend.ServiceName], Port = targetPort, Path = path.Path, Scheme = "http" };
-                        }
+                        // From what it looks like, scheme is always http unless the tls section is specified, 
+                        _ipMappingList[path.Backend.ServiceName] = new IpMapping { IpAddresses = _serviceToIp[path.Backend.ServiceName], Port = targetPort, Path = path.Path, Scheme = "http" };
                     }
                 }
             }
