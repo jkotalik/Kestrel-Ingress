@@ -48,19 +48,19 @@ namespace Ingress.Controller
                 {
                     if (type == WatchEventType.Added)
                     {
-                        _logger.LogInformation("Added event");
+                        _logger.LogInformation("Added event for ingress");
                         await CreateJsonBlob(item);
                         StartProcess();
                     }
                     else if (type == WatchEventType.Modified)
                     {
                         // Generate a new configuration here and let the process handle it.
-                        _logger.LogInformation("Modified event");
+                        _logger.LogInformation("Modified event for ingress");
                         await CreateJsonBlob(item);
                     }
                     else if (type == WatchEventType.Deleted)
                     {
-                        _logger.LogInformation("Deleted event");
+                        _logger.LogInformation("Deleted event for ingress");
                         _process.Close();
                     }
                     else
@@ -71,7 +71,7 @@ namespace Ingress.Controller
                 var result2 = _klient.ListNamespacedEndpointsWithHttpMessagesAsync("default", watch: true);
                 _endpointWatcher = result2.Watch((Action<WatchEventType, V1Endpoints>)(async (type, item) =>
                 {
-                    _logger.LogInformation($"Got endpoints {type.ToString()}");
+                    _logger.LogInformation($"Endpoints updated with type: {type.ToString()}");
 
                     if (type == WatchEventType.Added)
                     {
@@ -129,10 +129,9 @@ namespace Ingress.Controller
                 if (endpoint != null && endpoint.Subsets != null)
                 {
                     _serviceToIp[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
-                    _logger.LogInformation($"Actually updating endpoint {endpoint.Metadata.Name}");
                     foreach(var s in _serviceToIp[endpoint.Metadata.Name])
                     {
-                        _logger.LogInformation($"Endpoint: {s}");
+                        _logger.LogInformation($"Current endpoint: {s}");
                     }
                 }
             }
@@ -142,13 +141,9 @@ namespace Ingress.Controller
         {
             lock (_sync)
             {
-                _logger.LogInformation(endpoint.Kind.ToString());
-                _logger.LogInformation(endpoint.Metadata.ToString());
-                _logger.LogInformation(endpoint.ToString());
                 if (endpoint != null && endpoint.Subsets != null)
                 {
                     _serviceToIp.Remove(endpoint.Metadata.Name);
-                    _logger.LogInformation($"Actually removing endpoint {endpoint.Metadata.Name}");
                 }
             }
         }
@@ -157,19 +152,13 @@ namespace Ingress.Controller
         {
             lock (_sync)
             {
-                _logger.LogInformation(item.Kind.ToString());
-                _logger.LogInformation(item.Metadata.ToString());
-                _logger.LogInformation(item.ToString());
                 if (item != null && item.Items != null)
                 {
-                    _logger.LogInformation($"Items aren't null");
                     foreach (var endpoint in item.Items)
                     {
-                        _logger.LogInformation($"Checking endpoint");
                         if (endpoint != null && endpoint.Subsets != null)
                         {
                             _serviceToIp[endpoint.Metadata.Name] = endpoint.Subsets.SelectMany((o) => o.Addresses).Select(a => a.Ip).ToList();
-                            _logger.LogInformation($"Actually updating endpoint {endpoint.Metadata.Name} {_serviceToIp[endpoint.Metadata.Name].ToString()}");
                         }
                     }
                 }
@@ -179,7 +168,6 @@ namespace Ingress.Controller
         private void StartProcess()
         {
             _process = new Process();
-            _logger.LogInformation(File.Exists("/app/Ingress/Ingress.dll").ToString());
             var startInfo = new ProcessStartInfo("dotnet", "/app/Ingress/Ingress.dll");
             startInfo.WorkingDirectory = "/app/Ingress";
             startInfo.CreateNoWindow = true;
@@ -201,10 +189,6 @@ namespace Ingress.Controller
 
             var fileStream = File.Open(ingressFile, FileMode.Create);
 
-            // TODO maybe check that a host is present:
-            // An optional host. In this example, no host is specified, so the rule applies to all 
-            // inbound HTTP traffic through the IP address specified. If a host is provided 
-            // (for example, foo.bar.com), the rules apply to that host.
             foreach (var i in ingress.Spec.Rules)
             {
                 foreach (var path in i.Http.Paths)
@@ -222,7 +206,6 @@ namespace Ingress.Controller
                     {
                         // TODO this is not hit today due to us only handling updates to endpoints
                         // after ingress is handled.
-                        _logger.LogInformation("IP mapping exists, use it.");
                         lock(_sync)
                         {
                             _ipMappingList[path.Backend.ServiceName] = new IpMapping { IpAddresses = ipList, Port = path.Backend.ServicePort, Path = path.Path };
@@ -230,7 +213,7 @@ namespace Ingress.Controller
                     }
                     else
                     {
-                        _logger.LogInformation("querying for endpoints");
+                        _logger.LogInformation("Querying for endpoints");
                         var endpoints = await _klient.ListNamespacedEndpointsAsync(namespaceParameter: ingress.Metadata.NamespaceProperty);
                         var service = await _klient.ReadNamespacedServiceAsync(path.Backend.ServiceName, ingress.Metadata.NamespaceProperty);
                         

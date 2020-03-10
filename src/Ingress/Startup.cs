@@ -35,7 +35,6 @@ namespace Ingress
         {
             services.Configure<KestrelServerOptions>(
                 Configuration.GetSection("Kestrel"));
-            // TODO services.AddIngress
             services.Configure<IngressBindingOptions>(Configuration);
             services.AddRouting();
             services.AddSingleton<IngressService>();
@@ -45,7 +44,6 @@ namespace Ingress
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, IOptionsMonitor<IngressBindingOptions> bindings)
         {
             app.UseRouting();
-            // app.UseProxyEndpoints(bindings);
             app.UseEndpoints(endpoints =>
             {
                 // Add config based endpoints which will invalidate cache on 

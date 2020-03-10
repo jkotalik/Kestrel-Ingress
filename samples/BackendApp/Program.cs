@@ -20,14 +20,7 @@ namespace BackendApp
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>()
-                        .ConfigureKestrel((context, options) =>
-                        {
-                            options.ListenAnyIP(80, listenOptions =>
-                            {
-                                listenOptions.UseConnectionLogging();
-                            });
-                        });
+                    webBuilder.UseStartup<Startup>();
                 });
     }
 }
