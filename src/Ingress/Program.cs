@@ -22,7 +22,6 @@ namespace Ingress
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddJsonFile("ingress.json", optional: false, reloadOnChange: true);
-                    Console.WriteLine(File.ReadAllText("ingress.json"));
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {

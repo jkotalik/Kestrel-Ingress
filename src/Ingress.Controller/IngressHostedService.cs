@@ -111,6 +111,8 @@ namespace Ingress.Controller
 
             if (shouldWrite)
             {
+                // We want to make sure the ingress file is present before updating it.
+                // Use a tcs for now to update it.
                 await _tcs.Task;
                 var ingressFile = "/app/Ingress/ingress.json";
                 var fileStream = File.Open(ingressFile, FileMode.Create);
@@ -198,6 +200,7 @@ namespace Ingress.Controller
             var ingressFile = "/app/Ingress/ingress.json";
 
             var fileStream = File.Open(ingressFile, FileMode.Create);
+
             // TODO maybe check that a host is present:
             // An optional host. In this example, no host is specified, so the rule applies to all 
             // inbound HTTP traffic through the IP address specified. If a host is provided 
@@ -217,6 +220,8 @@ namespace Ingress.Controller
 
                     if (exists)
                     {
+                        // TODO this is not hit today due to us only handling updates to endpoints
+                        // after ingress is handled.
                         _logger.LogInformation("IP mapping exists, use it.");
                         lock(_sync)
                         {
@@ -245,7 +250,7 @@ namespace Ingress.Controller
             var json = new IngressBindingOptions() {IpMappings = _ipMappingList.Values.ToList()};
             await JsonSerializer.SerializeAsync(fileStream, json, typeof(IngressBindingOptions));
             fileStream.Close();
-            
+
             _tcs.SetResult(null);
         }
     }
